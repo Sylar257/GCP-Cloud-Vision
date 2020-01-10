@@ -4,7 +4,7 @@
 
 * Serving vision models on GCP
 * Dealing with data scarcity
-* Transfer Learning
+* Transfer Learning & Reinforcement learning for architecture designing
 * Cloud Vision API / AutoML Vision
 
 ## Serving_CNN
@@ -124,7 +124,68 @@ trainingInput:
       scaleType: UNIT_LINEAR_SCALE
 ```
 
+## Dealing with data scarcity
 
+### Data Augmentation
 
+```python
+def make_input_fn(csv_of_filenames, batch_size, mode, augment):
+  def _input_fn():
+    def decode_csv(csv_row):
+      filename, labe = tf.decode_csv(
+      csv_row, record_defaults = [[ ],[ ]])
+    image_bytes = tf.read_file(filename)
+    return image_bytes, label
+  
+  dataset = tf.data.TextLineDataset(csv_of_filenames).map(decode_csv).map(decode_jpeg).map(resize_image)
+  if augment:
+    dataset = dataset.map(augment_image)
+  dataset = dataset.map(postprocess_image)
+  
+  
+  return dataset.make_one_shot_iterator().get_next()
+  return _input_fn  
+```
 
+To define `decode_jpeg` function:
 
+```python
+import tensorflow.image as tfi
+
+def decode_jpeg(image_bytes, label):
+  image = tfi.decode_jpeg(image_bytes, channels=NUM_CHANNELS)
+  image = tfi.convert_image_dtype(image, dtype=tf.float32)
+  return image, label
+```
+
+To define `augment_image` function:
+
+```python
+def augment_image(image_dict, label=None):
+  image = image_dict['image']
+  image = tf.expand_dims(image, 0) # resize_bilinear needs batches
+  image = tfi.resize_bilinear(image, [HEIGHT+10, WIDTH+10], align_corners=False)
+  image = tfi.squeeze(image) # remove batch dimension
+  image = tfi.random_crop(image, [HEIGHT, WIDTH, NUM_CHANNELS])
+  image = tfi.random_flip_left_right(image)
+  image = tfi.random_brightness(image, max_delta=63.0/255.0)
+  image = tfi.random_contrast(image, lower=0.2, upper=1.8)
+  
+  return image, label
+```
+
+## Transfer learning
+
+![image-20200109120518992](images/transfer_learning.jpeg)
+
+This is another way of thinking about Transfer learning. When we don’t have enough data to close the distance between **random initialization** and **target optimum**, we could go for the **related optimum** first by training the network for another related but different task. Then start from **related optimum** and train for the **target optimum**.
+
+ ## Reinforcement Learning for designing architectures
+
+![reinforcement_learning](images\reinforcement_learning.png)
+
+This is a technique that Google use to search for potential neural network architectures for certain tasks in an **non-manual** manner.
+
+The working principle is similar to a **GAN** but simpler on the **discriminator** side: The **controller(RNN)** propose an architecture (it’s sampled from it’s architecture pool with probability **p**). The **”discriminator”** trains the network and evaluate it’s performance(accuracy **R**). Thirdly, compute gradient of **p** and scale it by **R** to update the controller.
+
+Eventually, the **controller** learns to assign **high** probabilities to the areas of the *architecture space*  that **achieve better accuracy** and **low** probabilities to areas that performed poorly. This lays the foundation for the **AutoML** that Google builds.
