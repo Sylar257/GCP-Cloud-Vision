@@ -189,3 +189,14 @@ This is a technique that Google use to search for potential neural network archi
 The working principle is similar to a **GAN** but simpler on the **discriminator** side: The **controller(RNN)** propose an architecture (it’s sampled from it’s architecture pool with probability **p**). The **”discriminator”** trains the network and evaluate it’s performance(accuracy **R**). Thirdly, compute gradient of **p** and scale it by **R** to update the controller.
 
 Eventually, the **controller** learns to assign **high** probabilities to the areas of the *architecture space*  that **achieve better accuracy** and **low** probabilities to areas that performed poorly. This lays the foundation for the **AutoML** that Google builds.
+
+## Cloud Vision API / AutoML Vision
+
+![different_learning_tools](images\different_learning_tools.png)
+
+These are the four categories of approaches we can take to deploy ML models on GCP.
+
+With the most flexible customized models on the left to **AutoML** on the right where we barely have to write and code.
+
+**BigQuery** ML has power ML structure to deal with **structured datasets** and only **structured**.
+
